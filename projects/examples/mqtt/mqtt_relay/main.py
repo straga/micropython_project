@@ -97,7 +97,7 @@ def load_config():
         save_config()
     else:
         CONFIG.update(config)
-        print("Loaded config from /config.json")
+        print("Loaded config from /flash/config.json")
 
 def save_config():
     import ujson as json
@@ -156,6 +156,9 @@ def make_publish():
 
         to_mqtt = get_messages()
 
+        if debug:
+            print("Message to MQTT", to_mqtt)
+
         if to_mqtt:
 
             for key, value in to_mqtt.items():
@@ -163,10 +166,10 @@ def make_publish():
 
                 if value:
 
-                    while time.ticks_diff(t_start, time.ticks_ms()) <= 2000:  # 2000mS delay
+                    while time.ticks_diff(t_start, time.ticks_ms()) >= 2000:  # 2000mS delay
                         yield None
-
-                    # print("INF: Pub: %s, %s" % (key, value))
+                    if debug:
+                        print("Message Ready: Pub: %s, %s" % (key, value))
                     if c_mqtt and c_mqtt.status == 1:
 
                         retain = False
@@ -178,6 +181,8 @@ def make_publish():
                         result = c_mqtt.publish(CONFIG[key], bytes(value, 'utf-8'), retain)
                         if result == 1:
                             clear_messages(key)
+                        if debug:
+                            print("Result pub to MQTT", result)
                         # if key == 'wait_msg':
                         #     c_mqtt.wait_msg()
 
@@ -334,11 +339,12 @@ def run_timer():
     tim1.init(period=15000, mode=Timer.PERIODIC, callback=lambda t: check())
     tim2.init(period=2000, mode=Timer.PERIODIC, callback=lambda t: wait_msg())
     tim3.init(period=1000, mode=Timer.PERIODIC, callback=lambda t: pubm())
-    tim4.init(period=20000, mode=Timer.PERIODIC, callback=lambda t: temp_18b20())
+
+    #uncomment if DS18B20 present, or freezed every 20sec.
+    #tim4.init(period=20000, mode=Timer.PERIODIC, callback=lambda t: temp_18b20())
+
+
     # tim5.init(period=60000, mode=Timer.PERIODIC, callback=lambda t: get_relay_status(1))
-
-
-
     # tim1.init(period=10000, mode=Timer.ONE_SHOT, callback=lambda t: connect_mqtt_client())
 
 

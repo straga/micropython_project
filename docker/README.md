@@ -112,6 +112,19 @@ lsusb
 
     Просматреваем что лежит на ESP
     ampy --port /dev/ttyUSB0 ls
+    Для загрузки ampy не пользуемся, портит flash.
+    Для загрузки webrepl или ...
+
+Настройка webrepl    
+import webrepl_setup
+
+CONFIG['broker'] = '192.168.2.138'
+save_config()
+
+import network
+sta_if = network.WLAN(network.STA_IF)
+sta_if.active(True)
+sta_if.connect('<your ESSID>', '<your password>')
 
   ```Com port Terminal
 
