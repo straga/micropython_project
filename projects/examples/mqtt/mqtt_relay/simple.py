@@ -214,7 +214,7 @@ class MQTTClient:
             #print(hex(len(pkt)), hexlify(pkt, ":"))
             self.write(pkt)
             self._send_str(topic)
-            self.write(qos.to_bytes(1))
+            self.write(qos.to_bytes(1, "little"))
 
             op = self.wait_msg()
             if op == 0x90:

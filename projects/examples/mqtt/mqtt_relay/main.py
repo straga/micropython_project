@@ -90,10 +90,10 @@ def set_relay_status(relay, value):
 def load_config():
     import ujson as json
     try:
-        with open("/config.json") as f:
+        with open("/flash/config.json") as f:
             config = json.loads(f.read())
     except (OSError, ValueError):
-        print("Couldn't load /config.json")
+        print("Couldn't load /flash/config.json")
         save_config()
     else:
         CONFIG.update(config)
@@ -102,10 +102,10 @@ def load_config():
 def save_config():
     import ujson as json
     try:
-        with open("/config.json", "w") as f:
+        with open("/flash/config.json", "w") as f:
             f.write(json.dumps(CONFIG))
     except OSError:
-        print("Couldn't save /config.json")
+        print("Couldn't save /flash/config.json")
 
 
 def setup():
@@ -277,10 +277,10 @@ def check():
             set_relay_status(1, 1)
 
         if tem1 and r1_manual:
-            if tem1 > 20.5:
+            if tem1 > 22:
                 set_relay_status(0, 1)
 
-            if tem1 < 18:
+            if tem1 < 19:
                 set_relay_status(0, 0)
         else:
             set_relay_status(0, 1)
@@ -301,6 +301,8 @@ def temp_18b20():
     # scan for devices on the bus
     global roms
     global tem1
+    MESSAGES['DS18B20'] = None
+    tem1 = False
     roms = ds.scan()
     if roms:
         ds.convert_temp()
@@ -312,6 +314,8 @@ def temp_18b20():
         else:
             tem1 = False
             MESSAGES['DS18B20'] = None
+
+
 
 def wait_msg():
 
