@@ -32,7 +32,8 @@ r2_manual = False
 client_id = b"esp8266_" + ubinascii.hexlify(machine.unique_id())
 
 # "broker": '192.168.2.138',
-# "broker": 'iot.eclipse.org'
+# "broker": '192.168.2.138',
+#'iot.eclipse.org'
 
 CONFIG = {
     "broker": '192.168.2.138',
@@ -45,6 +46,7 @@ CONFIG = {
     "sw1_state" : b"devices/"+client_id+"/sw1/state",
     "sw2_set": b"devices/" + client_id + "/sw2/set",
     "sw2_state": b"devices/" + client_id + "/sw2/state",
+    "DS18B20" : b"devices/" + client_id + "/18b20/temp",
 
 }
 
@@ -117,6 +119,13 @@ def setup():
     global publish
     publish = make_publish()
 
+    # the device is on GPIO12
+    dat = machine.Pin(13)
+
+    #create the onewire object
+    global ds
+    ds = ds18x20.DS18X20(onewire.OneWire(dat))
+
     global roms
     roms = False
 
@@ -177,6 +186,14 @@ def make_publish():
                         # if key == 'wait_msg':
                         #     c_mqtt.wait_msg()
 
+
+
+
+        # while time.ticks_diff(t_start, time.ticks_ms()) <= 10000:  # 15000mS delay
+        #     yield None
+
+
+
         yield True
 
 
@@ -208,6 +225,30 @@ def sub_cb(topic, msg):
         print(topic, msg)
 
 
+    # if (topic == "garage12/red/esp121/sw2/set")
+    #     {
+    #
+    #     if (message == "ON")
+    #     {
+    #         Serial.println("sw2: ON");
+    #
+    #     digitalWrite(SW2_PIN, LOW);
+    #     }
+    #     else
+    #     {
+    #         Serial.println("sw2: OFF");
+    #
+    #     digitalWrite(SW2_PIN, HIGH);
+    #     }
+    #     mqtt.publish("garage12/red/esp121/sw2/state", message);
+    #
+    #     }
+
+
+
+
+
+
 def config_mqtt_client():
     global c_mqtt
 
@@ -218,6 +259,7 @@ def config_mqtt_client():
         print("Couldn't connect to MQTT")
 
     # Subscribed messages will be delivered to this callback
+
 
 
 
@@ -236,20 +278,54 @@ def check():
         c_mqtt.con2()
 
     else:
+        if tem1 and r2_manual:
+            if tem1 > 20.5:
+                set_relay_status(1, 1)
 
-        if r2_manual:
-            set_relay_status(1, 0)
+            if tem1 < 18:
+                set_relay_status(1, 0)
         else:
             set_relay_status(1, 1)
 
-        if r1_manual:
-            set_relay_status(0, 0)
+        if tem1 and r1_manual:
+            if tem1 > 22:
+                set_relay_status(0, 1)
+
+            if tem1 < 19:
+                set_relay_status(0, 0)
         else:
             set_relay_status(0, 1)
 
 
+
+
+
+
+
+
     global MESSAGES
     MESSAGES['ping'] = '1'
+
+
+def temp_18b20():
+
+    # scan for devices on the bus
+    global roms
+    global tem1
+    MESSAGES['DS18B20'] = None
+    tem1 = False
+    roms = ds.scan()
+    if roms:
+        ds.convert_temp()
+        temp = ds.read_temp(roms[0])
+
+        if temp:
+            MESSAGES['DS18B20'] = str(temp)
+            tem1 = float(temp)
+        else:
+            tem1 = False
+            MESSAGES['DS18B20'] = None
+
 
 
 def wait_msg():
@@ -269,6 +345,9 @@ def run_timer():
     tim1.init(period=15000, mode=Timer.PERIODIC, callback=lambda t: check())
     tim2.init(period=2000, mode=Timer.PERIODIC, callback=lambda t: wait_msg())
     tim3.init(period=1000, mode=Timer.PERIODIC, callback=lambda t: pubm())
+
+    #uncomment if DS18B20 present, or freezed every 20sec.
+    tim4.init(period=20000, mode=Timer.PERIODIC, callback=lambda t: temp_18b20())
 
 
     # tim5.init(period=60000, mode=Timer.PERIODIC, callback=lambda t: get_relay_status(1))

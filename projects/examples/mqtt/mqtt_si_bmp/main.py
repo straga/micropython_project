@@ -18,7 +18,7 @@ client_id = b"esp8266_" + ubinascii.hexlify(machine.unique_id())
 # "broker": 'iot.eclipse.org',
 
 CONFIG = {
-    "broker": 'iot.eclipse.org',
+    "broker": '192.168.2.138',
     "port" : 1883,
     "sensor_pin": 0,
     "client_id": client_id,
