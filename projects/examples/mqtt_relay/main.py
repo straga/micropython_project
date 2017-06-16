@@ -14,7 +14,7 @@ tim5 = Timer(-1)
 
 import time
 import machine
-import onewire, ds18x20
+
 
 
 global debug
