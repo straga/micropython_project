@@ -108,27 +108,37 @@ lsusb
 		ESP - power cycle
     esptool.py --baud 115200 --port /dev/ttyUSB0 write_flash -fm dio -fs 32m -ff 40m 0x00000 firmware-combined.bin
 
-  ```AMPY
+  ```Electrodragon http://www.electrodragon.com/w/index.php?title=ESP_Relay_Board_Series
+    1. Connect USB-TTL and connect to PC.
+    2. Power On Dragon with BTN2
+    3. esptool.py --port /dev/ttyUSB0 erase_flash
+    4. ESP - power cycle with BTN2
+    5. Flash - esptool.py --baud 115200 --port /dev/ttyUSB0 write_flash -fm dio -fs 32m -ff 40m 0x00000 firmware-combined.bin
 
-    Просматреваем что лежит на ESP
-    ampy --port /dev/ttyUSB0 ls
-    Для загрузки ampy не пользуемся, портит flash.
-    Для загрузки webrepl или ...
 
-Настройка webrepl    
-import webrepl_setup
+  ```Com port Terminal
 
-CONFIG['broker'] = '192.168.2.138'
-save_config()
+      Connect to com
+      picocom /dev/ttyUSB0 -b115200
+
+      Exit from picocom CTR+A+X
+
+
+
+First Setup:
+
+  1. picocom /dev/ttyUSB0 -b115200
+  2. Настройка webrepl    
+      import webrepl_setup
 
 import network
 sta_if = network.WLAN(network.STA_IF)
 sta_if.active(True)
 sta_if.connect('<your ESSID>', '<your password>')
+sta_if.ifconfig()
 
-  ```Com port Terminal
 
-    Connect to com
-    picocom /dev/ttyUSB0 -b115200
+Broker:
 
-    Exit from picocom CTR+A+X
+    CONFIG['broker'] = '192.168.2.138'
+    save_config()
