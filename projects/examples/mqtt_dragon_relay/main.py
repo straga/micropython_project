@@ -4,7 +4,7 @@ from machine import Timer
 import time
 from simple import MQTTClient
 import ubinascii
-from machine import Pin, PWM
+from machine import Pin
 
 tim1 = Timer(-1)
 tim2 = Timer(-1)
@@ -15,19 +15,8 @@ tim5 = Timer(-1)
 import time
 import machine
 
-
-
 global debug
 debug = False
-
-global tem1
-tem1 = False
-
-global r1_manual
-global r2_manual
-
-r1_manual = False
-r2_manual = False
 
 client_id = b"esp8266_" + ubinascii.hexlify(machine.unique_id())
 
@@ -48,16 +37,34 @@ CONFIG = {
 
 }
 
-RELAYS = [machine.Pin(i, machine.Pin.OUT, value=0) for i in (12, 13)]
+on = 1
+off = 0
+
+RELAYS = [machine.Pin(i, machine.Pin.OUT, value=off) for i in (12, 13)]
+relay1 = 1
+relay2 = 0
+
+but1_pin = 2
+but2_pin = 0
+button1 = machine.Pin(but1_pin, machine.Pin.IN, machine.Pin.PULL_UP)
+button2 = machine.Pin(but2_pin, machine.Pin.IN, machine.Pin.PULL_UP)
+
 
 def get_value_h(value):
 
-    if value == 1:
-        return "OFF"
     if value == 0:
+        return "OFF"
+    if value == 1:
         return "ON"
     return None
 
+def get_relay_h(value):
+
+    if value == 0:
+        return "Relay 2"
+    if value == 1:
+        return "Relay 1"
+    return None
 
 
 def get_relays():
@@ -67,22 +74,22 @@ def get_relay_status(relay):
     value = RELAYS[int(relay)].value()
     result = get_value_h(value)
 
-    return "Relay %s status: %s" % (relay, result)
-
+    print("%s status: %s" % (get_relay_h(relay), result))
+    return value
 
 def set_relay_status(relay, value):
     RELAYS[int(relay)].value(int(value))
     global MESSAGES
 
-    if relay == 1:
+    if relay == relay2:
 
         MESSAGES['sw2_state'] = get_value_h(value)
 
-    if relay == 0:
+    if relay == relay1:
 
         MESSAGES['sw1_state'] = get_value_h(value)
 
-    return "Relay %s set to %s" % (relay, value)
+    print("%s set to %s" % (get_relay_h(relay), get_value_h(value)))
 
 
 def load_config():
@@ -109,8 +116,8 @@ def save_config():
 def setup():
 
 
-    global pwm2
-    pwm2 = PWM(Pin(2), freq=2, duty=512)
+    # global pwm2
+    # pwm2 = PWM(Pin(2), freq=2, duty=512)
 
     set_messages()
 
@@ -135,6 +142,7 @@ def set_messages():
 def clear_messages(key):
 
     global MESSAGES
+
     MESSAGES[key] = None
 
 
@@ -159,8 +167,10 @@ def make_publish():
 
                     while time.ticks_diff(t_start, time.ticks_ms()) <= -2000:  # 2000mS delay
                         yield None
+
                     if debug:
                         print("Message Ready: Pub: %s, %s" % (key, value))
+
                     if c_mqtt and c_mqtt.status == 1:
 
                         retain = False
@@ -181,28 +191,22 @@ def make_publish():
 
 
 def sub_cb(topic, msg):
-    global r1_manual
-    global r2_manual
 
     if topic.decode() == CONFIG['sw2_set']:
 
         if msg.decode() == "ON":
-            r2_manual = True
-            #set_relay_status(1, 0)
+            set_relay_status(relay2, on)
 
         if msg.decode() == "OFF":
-            r2_manual = False
-            #set_relay_status(1, 1)
+            set_relay_status(relay2, off)
 
     if topic.decode() == CONFIG['sw1_set']:
 
         if msg.decode() == "ON":
-            r1_manual = True
-            #set_relay_status(0, 0)
+            set_relay_status(relay1, 1)
 
         if msg.decode() == "OFF":
-            r1_manual = False
-            #set_relay_status(0, 1)
+            set_relay_status(relay1, 0)
 
     if debug:
         print(topic, msg)
@@ -224,29 +228,7 @@ def config_mqtt_client():
 def check():
 
     if c_mqtt and c_mqtt.status == 0:
-
-        global r2_manual
-        global r1_manual
-
-        set_relay_status(1, 0)
-        set_relay_status(0, 0)
-        r1_manual = False
-        r1_manual = False
-
         c_mqtt.con2()
-
-    else:
-
-        if r2_manual:
-            set_relay_status(1, 1)
-        else:
-            set_relay_status(1, 0)
-
-        if r1_manual:
-            set_relay_status(0, 1)
-        else:
-            set_relay_status(0, 0)
-
 
     global MESSAGES
     MESSAGES['ping'] = '1'
@@ -271,14 +253,44 @@ def run_timer():
     tim3.init(period=1000, mode=Timer.PERIODIC, callback=lambda t: pubm())
 
 
-    # tim5.init(period=60000, mode=Timer.PERIODIC, callback=lambda t: get_relay_status(1))
-    # tim1.init(period=10000, mode=Timer.ONE_SHOT, callback=lambda t: connect_mqtt_client())
+def switch_relay(relay):
+    if get_relay_status(relay):
+        set_relay_status(relay, off)
+    else:
+        set_relay_status(relay, on)
+
+global last_interrupt_time
+last_interrupt_time = 0
+
+def button_callback(pin):
+
+    global last_interrupt_time
+    interrupt_time = time.ticks_ms()
+
+    sw1 = Pin(but1_pin)
+    sw2 = Pin(but2_pin)
+
+    if time.ticks_diff(last_interrupt_time, interrupt_time) <= -200:
+
+        if pin is sw1:
+            switch_relay(relay1)
+        elif pin is sw2:
+            switch_relay(relay2)
+
+    last_interrupt_time = interrupt_time
+
+
+
 
 
 def main():
 
     config_mqtt_client()
     run_timer()
+
+    button1.irq(trigger=machine.Pin.IRQ_FALLING, handler=button_callback)
+    button2.irq(trigger=machine.Pin.IRQ_FALLING, handler=button_callback)
+
 
 
 if __name__ == '__main__':
