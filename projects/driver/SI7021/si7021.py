@@ -100,7 +100,7 @@ class SI7021:
                     yield None
 
                 t_start = time.ticks_ms()
-                while time.ticks_diff(t_start, time.ticks_ms()) >= delays:
+                while time.ticks_diff(t_start, time.ticks_ms()) <= delays:
                     yield None
                 try:
                     self.T_raw = self.i2c.readfrom(self.si_addr, 3)
@@ -116,7 +116,7 @@ class SI7021:
                     yield None
 
                 t_start = time.ticks_ms()
-                while time.ticks_diff(t_start, time.ticks_ms()) >= delays:
+                while time.ticks_diff(t_start, time.ticks_ms()) <= delays:
                     yield None
                 try:
                     self.H_raw = self.i2c.readfrom(self.si_addr, 3)
