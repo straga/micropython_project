@@ -83,11 +83,11 @@ class SI7021:
         start = time.ticks_ms() # get millisecond counter
         delta = time.ticks_diff(start, time.ticks_ms()) # compute time difference
         '''
-        delays = 25  # mS delay
+        delays = -25  # mS delay
 
         while True:
 
-            if self.status == 0:
+            if self.status == 0 or self.status > 1:
                 self.read_user_register()
                 yield None
             else:
@@ -96,31 +96,32 @@ class SI7021:
                 try:
                     self.i2c.writeto(self.si_addr, ustruct.pack('b', self.TRIGGER_TEMPERATURE_NO_HOLD))
                 except OSError:
-                    self.status = 0
+                    self.status = 12
                     yield None
 
                 t_start = time.ticks_ms()
-                while time.ticks_diff(t_start, time.ticks_ms()) <= delays:
+                while time.ticks_diff(t_start, time.ticks_ms()) >= delays:
                     yield None
                 try:
                     self.T_raw = self.i2c.readfrom(self.si_addr, 3)
                 except:
-
+                    self.status = 13
                     yield None
 
                 #HUMIDITY_NO_HOLD
                 try:
                     self.i2c.writeto(self.si_addr, ustruct.pack('b', self.TRIGGER_HUMIDITY_NO_HOLD))
                 except OSError:
-                    self.status = 0
+                    self.status = 22
                     yield None
 
                 t_start = time.ticks_ms()
-                while time.ticks_diff(t_start, time.ticks_ms()) <= delays:
+                while time.ticks_diff(t_start, time.ticks_ms()) >= delays:
                     yield None
                 try:
                     self.H_raw = self.i2c.readfrom(self.si_addr, 3)
                 except:
+                    self.status = 23
                     yield None
 
                 yield True
@@ -134,6 +135,8 @@ class SI7021:
         try:
             next(self.gauge)
         except StopIteration:
+            if self.debug:
+                print("StopIteration")
             return -255
 
         value = self.T_raw
@@ -141,6 +144,8 @@ class SI7021:
             value = 0
 
         if not self.crc8check(value):
+            if self.debug:
+                print("crc8check: %s" % value)
             return -255
 
         raw_temp = (value[0] << 8) + value[1]

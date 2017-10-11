@@ -11,13 +11,15 @@ tim3 = Timer(-1)
 
 def setup():
 
-    i2c = I2C(Pin(5), Pin(4))
+    #i2c = I2C(Pin(5), Pin(4)) #ESP8266 - ESP32 DEVKIT
+    i2c = I2C(sda=Pin(4), scl=Pin(15))
 
     global sensor_si
     sensor_si = si7021.SI7021(i2c, debug=True)
 
     global pwm2
-    pwm2 = PWM(Pin(2), freq=2, duty=512)
+    #pwm2 = PWM(Pin(2), freq=2, duty=512) #ESP8266 - ESP32 DEVKIT
+    pwm2 = PWM(Pin(25), freq=2, duty=512) #ESP32+LORA+OLED
 
 
 
