@@ -129,6 +129,7 @@ tem1 = False
 def get_18b20():
 
     MESSAGES['DS18B20'] = None
+    global tem1, roms
     tem1 = False
     roms = ds.scan()
     if roms:
@@ -195,6 +196,10 @@ def check():
 
     if c_mqtt and c_mqtt.status == 0:
         c_mqtt.con2()
+
+        #if not connect to MQTT turn OFF relay
+        relay_2.set_state(relay_off)
+        relay_1.set_state(relay_off)
 
 
     global MESSAGES
