@@ -12,6 +12,8 @@ from mqtt_simple import MQTTClient
 client_id = b"esp8266_D_" + ubinascii.hexlify(machine.unique_id())
 
 
+#mode: AUTO , M_T, OFF
+#temp control R1: max
 #CONFIG
 CONFIG = {
     "broker": '192.168.2.153',
@@ -19,6 +21,9 @@ CONFIG = {
     "sensor_pin": 14,
     "delay_between_message" : -500,
     "client_id": client_id,
+    "r1_mode": "OFF",
+    "r1_tmax": 20.5,
+    "r1_tmin": 18,
     "topic": b"devices/"+client_id+"/#",
     "ping" : b"devices/"+client_id+"/ping",
     "sw1_set" : b"devices/"+client_id+"/sw1/set",
@@ -26,6 +31,12 @@ CONFIG = {
     "sw2_set": b"devices/" + client_id + "/sw2/set",
     "sw2_state": b"devices/" + client_id + "/sw2/state",
     "DS18B20": b"devices/" + client_id + "/18b20",
+    "t_ctr_r1_mode_set": b"devices/" + client_id + "/t_ctr_r1/mode/set",
+    "t_ctr_r1_mode_state": b"devices/" + client_id + "/t_ctr_r1/mode/state",
+    "t_ctr_r1_max": b"devices/" + client_id + "/t_ctr_r1/max",
+    "t_ctr_r1_min": b"devices/" + client_id + "/t_ctr_r1/min",
+    "m_delay": b"devices/" + client_id + "/m_delay",
+
 }
 
 def load_config():
@@ -47,6 +58,10 @@ def save_config():
             f.write(json.dumps(CONFIG))
     except OSError:
         print("Couldn't save /config.json")
+
+def put_config(name,value):
+    CONFIG[name] = value
+    save_config()
 
 
 def get_value_human(value):
@@ -79,7 +94,6 @@ def clear_messages(key):
 
 #MAIN
 debug = True
-temperature_control = True
 
 #RELAY
 
@@ -162,7 +176,7 @@ delay_between_message = -200 #500 ms
 
 def sub_cb(topic, msg):
 
-    if topic == CONFIG['sw2_set']:
+    if topic.decode() == CONFIG['sw2_set']:
 
         if msg.decode() == "ON":
             relay_2.set_state(relay_on)
@@ -170,13 +184,18 @@ def sub_cb(topic, msg):
         if msg.decode() == "OFF":
             relay_2.set_state(relay_off)
 
-    if topic == CONFIG['sw1_set']:
+    if topic.decode() == CONFIG['sw1_set']:
 
         if msg.decode() == "ON":
             relay_1.set_state(relay_on)
 
         if msg.decode() == "OFF":
             relay_1.set_state(relay_off)
+
+    if topic.decode() == CONFIG['t_ctr_r1_mode_set']:
+
+        put_config("r1_mode", msg.decode())
+        MESSAGES["t_ctr_r1_mode_state"] = CONFIG['r1_mode']
 
     if debug:
         print(topic.decode(), msg.decode())
@@ -203,16 +222,19 @@ def check():
         relay_1.set_state(relay_off)
 
     else:
-        if temperature_control:
+        #R1 - Temperature and Mode control
+        if CONFIG["r1_mode"] == "AUTO" or "M_T":
             if tem1:
-                if tem1 > 20.5:
+                if tem1 > CONFIG["r1_tmax"]:
                     relay_1.set_state(relay_off)
 
-                if tem1 < 18:
+                if tem1 < CONFIG["r1_tmin"]:
                     relay_1.set_state(relay_on)
             else:
                 relay_1.set_state(relay_off)
 
+        if CONFIG["r1_mode"] == "OFF":
+            relay_1.set_state(relay_off)
 
 
 
@@ -298,6 +320,7 @@ def run_timer():
     tim4.init(period=20000, mode=Timer.PERIODIC, callback=lambda t: get_18b20())
 
 def main():
+    load_config()
     run_timer()
 
 if __name__ == '__main__':
