@@ -58,4 +58,36 @@ sensor 1:
   qos: 0
   unit_of_measurement: "ºC"
 
+
+input_select:
+  r1_thermostat_mode:
+    name: R1 Thermostat Mode
+    options:
+      - "AUTO"
+      - "M_T"
+      - "OFF"
+    icon: mdi:target
+
+
+automation:
+    - alias: Set R1 Thermostat Mode Selector
+      trigger:
+        platform: mqtt
+        topic: "devices/esp8266_D_e302ee00/t_ctr_r1/mode/set"
+      action:
+         service: input_select.select_option
+         data_template:
+          entity_id: input_select.r1_thermostat_mode
+          option: '{{ trigger.payload }}'
+
+    - alias: Set Thermostat Mode
+      trigger:
+        platform: state
+        entity_id: input_select.r1_thermostat_mode
+      action:
+        service: mqtt.publish
+        data_template:
+          topic: "devices/esp8266_D_e302ee00/t_ctr_r1/mode/set"
+          retain: true
+          payload: '{{ states.input_select.r1_thermostat_mode.state }}'
 ``` 
