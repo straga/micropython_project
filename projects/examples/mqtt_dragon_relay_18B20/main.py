@@ -161,7 +161,7 @@ delay_between_message = -200 #500 ms
 
 def sub_cb(topic, msg):
 
-    if topic == CONFIG['sw2_set']:
+    if topic.decode() == CONFIG['sw2_set']:
 
         if msg.decode() == "ON":
             relay_2.set_state(relay_on)
@@ -169,7 +169,7 @@ def sub_cb(topic, msg):
         if msg.decode() == "OFF":
             relay_2.set_state(relay_off)
 
-    if topic == CONFIG['sw1_set']:
+    if topic.decode() == CONFIG['sw1_set']:
 
         if msg.decode() == "ON":
             relay_1.set_state(relay_on)
