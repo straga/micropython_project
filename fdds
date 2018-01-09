@@ -1,0 +1,119 @@
+[33mcommit 139731ba1fc9f18a657609e0bca634e938beed46[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m)[m
+Author: straga <vostraga@gmail.com>
+Date:   Tue Jan 9 14:34:49 2018 +0200
+
+    SeHttp
+
+[33mcommit 767d2af6e5df30ecfecee00a80cbd0ffdb4d4bfa[m[33m ([m[1;31morigin/master[m[33m)[m
+Author: straga <vostraga@gmail.com>
+Date:   Fri Oct 27 15:19:01 2017 +0300
+
+    mode for relay 1
+
+[33mcommit 29ff243770fc1dbe54496ab436f85189e94d182d[m
+Author: straga <vostraga@gmail.com>
+Date:   Fri Oct 27 15:17:51 2017 +0300
+
+    auto_commit
+
+[33mcommit 5d899459b258a2ee186039cae6e09f24dcf6f5b7[m
+Author: straga <vostraga@gmail.com>
+Date:   Fri Oct 27 12:46:27 2017 +0300
+
+    update firmware bin
+
+[33mcommit a40c7a3d7ce4a92ecaed92630ec96ff96a286883[m
+Author: straga <vostraga@gmail.com>
+Date:   Sun Oct 15 14:39:20 2017 +0300
+
+    auto_commit
+
+[33mcommit 40ff3d30bd34bba6486923a24185b2857a7345a4[m
+Author: straga <vostraga@gmail.com>
+Date:   Sun Oct 15 14:36:58 2017 +0300
+
+    auto_commit
+
+[33mcommit 2f62e06f99d564c6185b036f80779d18ddeae6d1[m
+Author: straga <vostraga@gmail.com>
+Date:   Sun Oct 15 14:08:49 2017 +0300
+
+    auto_commit
+
+[33mcommit 4cfa8c5923db496aca3f6de4383ddd8397889dc8[m
+Author: straga <vostraga@gmail.com>
+Date:   Sun Oct 15 14:06:41 2017 +0300
+
+    auto_commit
+
+[33mcommit e7dfd71ff16840580505ff9742329554a6a73082[m
+Author: straga <vostraga@gmail.com>
+Date:   Wed Oct 11 17:01:07 2017 +0300
+
+    auto_commit
+
+[33mcommit 7db3c3e4d3ddc1c443aed8ba0a622db9fccd46fa[m
+Author: straga <vostraga@gmail.com>
+Date:   Wed Oct 11 14:39:04 2017 +0300
+
+    auto_commit
+
+[33mcommit b84a8cddf0d9346050095dd01cfcda2ead13a087[m
+Author: straga <vostraga@gmail.com>
+Date:   Wed Oct 11 13:18:57 2017 +0300
+
+    auto_commit
+
+[33mcommit f513910901f339f6b11ed390a867e22f404979d8[m
+Author: straga <vostraga@gmail.com>
+Date:   Sun Jun 18 12:39:28 2017 +0300
+
+    auto_commit
+
+[33mcommit ae856bcca0de5f7693a82a1df63a176f5b8a5ae7[m
+Author: straga <vostraga@gmail.com>
+Date:   Fri Jun 16 14:36:34 2017 +0300
+
+    auto_commit
+
+[33mcommit 0f7efde398f5a3268dece6b98ccdcfe0e9b01d9d[m
+Author: straga <vostraga@gmail.com>
+Date:   Fri Jun 16 14:31:34 2017 +0300
+
+    auto_commit
+
+[33mcommit 6020681917636684300a6ef87e392269b225afc4[m
+Author: straga <vostraga@gmail.com>
+Date:   Fri Jun 16 14:12:49 2017 +0300
+
+    auto_commit
+
+[33mcommit 8feb9ab8ab76d44be4f2f80854cc28350b7fdb3c[m
+Author: straga <vostraga@gmail.com>
+Date:   Wed Jun 14 15:15:08 2017 +0300
+
+    auto_commit
+
+[33mcommit 5f15e4d64d24afd6421a907712c9ef35d36f89f2[m
+Author: straga <vostraga@gmail.com>
+Date:   Wed Jun 14 15:14:18 2017 +0300
+
+    Update for esp8266-20170612-v1.9.1.bin
+
+[33mcommit 7ae5b73a91e01d36ee0fa85346802755de719ce6[m
+Author: straga <vostraga@gmail.com>
+Date:   Fri Apr 28 10:05:29 2017 +0300
+
+    fix for Last build. Fix: timer_diff and to_byte. Default: disable timer for DS18b20. Debug=False
+
+[33mcommit 7672879e7f3b1ac9f05d51f6d1aed4eec85a248e[m
+Author: straga <vostraga@gmail.com>
+Date:   Fri Apr 28 06:08:28 2017 +0300
+
+    update for day build
+
+[33mcommit 965f799cb7d302de614a591108374a55ad38cfbf[m
+Author: straga <vostraga@gmail.com>
+Date:   Mon Apr 17 11:27:28 2017 +0300
+
+    init
