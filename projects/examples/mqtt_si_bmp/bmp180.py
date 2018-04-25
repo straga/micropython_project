@@ -135,7 +135,7 @@ class BMP180:
                     yield None
 
                 t_start = time.ticks_ms()
-                while time.ticks_diff(t_start, time.ticks_ms()) >= -5: # 5mS delay
+                while time.ticks_diff(t_start, time.ticks_ms()) >= 5: # 5mS delay
                     yield None
                 try:
                     self.UT_raw = self.i2c.readfrom_mem(self._bmp_addr, 0xF6, 2)
@@ -153,7 +153,7 @@ class BMP180:
 
                 t_pressure_ready = delays[self.oversample_setting]
                 t_start = time.ticks_ms()
-                while time.ticks_diff(t_start, time.ticks_ms()) <= t_pressure_ready:
+                while time.ticks_diff(t_start, time.ticks_ms()) >= t_pressure_ready:
                     yield None
                 try:
                     self.MSB_raw = self.i2c.readfrom_mem(self._bmp_addr, 0xF6, 1)

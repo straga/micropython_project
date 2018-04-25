@@ -1,32 +1,23 @@
-# -*- coding: utf-8 -*-
 import machine
 from machine import Timer
-import time
-from simple import MQTTClient
-import ubinascii
 from machine import Pin
-
-tim1 = Timer(-1)
-tim2 = Timer(-1)
-tim3 = Timer(-1)
-tim4 = Timer(-1)
-tim5 = Timer(-1)
+import button_control
+import relay_control
 
 import time
-import machine
+import ubinascii
 
-global debug
-debug = False
+from mqtt_simple import MQTTClient
 
-client_id = b"esp8266_" + ubinascii.hexlify(machine.unique_id())
+client_id = b"esp8266_D_" + ubinascii.hexlify(machine.unique_id())
 
-# "broker": '192.168.2.138',
-# "broker": 'iot.eclipse.org'
 
+#CONFIG
 CONFIG = {
-    "broker": '192.168.2.138',
+    "broker": '192.168.2.153',
     "port" : 1883,
-    "sensor_pin": 0,
+    "sensor_pin": 14,
+    "delay_between_message" : -500,
     "client_id": client_id,
     "topic": b"devices/"+client_id+"/#",
     "ping" : b"devices/"+client_id+"/ping",
@@ -34,63 +25,8 @@ CONFIG = {
     "sw1_state" : b"devices/"+client_id+"/sw1/state",
     "sw2_set": b"devices/" + client_id + "/sw2/set",
     "sw2_state": b"devices/" + client_id + "/sw2/state",
-
+    "DS18B20": b"devices/" + client_id + "/18b20",
 }
-
-on = 1
-off = 0
-
-RELAYS = [machine.Pin(i, machine.Pin.OUT, value=off) for i in (12, 13)]
-relay1 = 1
-relay2 = 0
-
-but1_pin = 2
-but2_pin = 0
-button1 = machine.Pin(but1_pin, machine.Pin.IN, machine.Pin.PULL_UP)
-button2 = machine.Pin(but2_pin, machine.Pin.IN, machine.Pin.PULL_UP)
-
-
-def get_value_h(value):
-
-    if value == 0:
-        return "OFF"
-    if value == 1:
-        return "ON"
-    return None
-
-def get_relay_h(value):
-
-    if value == 0:
-        return "Relay 2"
-    if value == 1:
-        return "Relay 1"
-    return None
-
-
-def get_relays():
-    return RELAYS
-
-def get_relay_status(relay):
-    value = RELAYS[int(relay)].value()
-    result = get_value_h(value)
-
-    print("%s status: %s" % (get_relay_h(relay), result))
-    return value
-
-def set_relay_status(relay, value):
-    RELAYS[int(relay)].value(int(value))
-    global MESSAGES
-
-    if relay == relay2:
-
-        MESSAGES['sw2_state'] = get_value_h(value)
-
-    if relay == relay1:
-
-        MESSAGES['sw1_state'] = get_value_h(value)
-
-    print("%s set to %s" % (get_relay_h(relay), get_value_h(value)))
-
 
 def load_config():
     import ujson as json
@@ -113,48 +49,166 @@ def save_config():
         print("Couldn't save /config.json")
 
 
-def setup():
+def get_value_human(value):
+
+    if value == "OFF":
+        return 0
+    if value == "ON":
+        return 1
+    return None
+
+def set_value_human(value):
+
+    if value == 1:
+        return "OFF"
+    if value == 0:
+        return "ON"
+    return None
 
 
-    # global pwm2
-    # pwm2 = PWM(Pin(2), freq=2, duty=512)
-
-    set_messages()
-
-    global publish
-    publish = make_publish()
-
-    global roms
-    roms = False
-
-
+#MESSAGE
+MESSAGES = {
+        # 'wait_msg' : '1'
+    }
 
 def get_messages():
     return MESSAGES
 
-def set_messages():
-
-    global MESSAGES
-    MESSAGES = {
-        # 'wait_msg' : '1'
-    }
-
 def clear_messages(key):
-
-    global MESSAGES
-
     MESSAGES[key] = None
 
+#MAIN
+debug = True
+
+#RELAY
+
+def relay_cb(relay):
+
+    if relay.save_state != relay.state:
+        relay.save_state = relay.state
+
+        MESSAGES[relay.name+"_state"] = relay.state
+
+        if debug:
+            print(relay.state)
+
+
+relay_pin_1 = 12
+relay_pin_2 = 13
+
+relay_on = 1
+relay_off = 0
+
+relay_1 = relay_control.RELAY(name="sw1" ,pin_num = relay_pin_1,on_value = relay_on)
+relay_2 = relay_control.RELAY(name="sw2" ,pin_num = relay_pin_2,on_value = relay_on)
+
+relay_1.set_callback(relay_cb)
+relay_2.set_callback(relay_cb)
+
+
+
+#BUTTON
+button_pin_1 = 0
+button_pin_2 = 2
+
+b2 = button_control.PinButton(button_pin_1, Pin.PULL_UP, debug=True, relay_control=relay_1 )
+b0 = button_control.PinButton(button_pin_2, Pin.PULL_UP, debug=True, relay_control=relay_2 )
+
+b0.start()
+b2.start()
+
+#SENSORS
+
+# create the onewire object
+import onewire, ds18x20
+dat = machine.Pin(CONFIG["sensor_pin"])
+ds = ds18x20.DS18X20(onewire.OneWire(dat))
+roms = False
+tem1 = False
+
+def get_18b20():
+
+    MESSAGES['DS18B20'] = None
+    tem1 = False
+    roms = ds.scan()
+    if roms:
+        ds.convert_temp()
+        temp = ds.read_temp(roms[0])
+
+        if temp:
+            MESSAGES['DS18B20'] = str(temp)
+            tem1 = float(temp)
+        else:
+            tem1 = False
+            MESSAGES['DS18B20'] = None
+
+
+#TIMER
+tim1 = Timer(-1)
+tim2 = Timer(-1)
+tim3 = Timer(-1)
+tim4 = Timer(-1)
+tim5 = Timer(-1)
+
+
+#MQTT
+
+c_mqtt = None
+
+# delay_between_message = CONFIG['delay_between_message']
+delay_between_message = -200 #500 ms
+
+def sub_cb(topic, msg):
+
+    if topic == CONFIG['sw2_set']:
+
+        if msg.decode() == "ON":
+            relay_2.set_state(relay_on)
+
+        if msg.decode() == "OFF":
+            relay_2.set_state(relay_off)
+
+    if topic == CONFIG['sw1_set']:
+
+        if msg.decode() == "ON":
+            relay_1.set_state(relay_on)
+
+        if msg.decode() == "OFF":
+            relay_1.set_state(relay_off)
+
+    if debug:
+        print(topic.decode(), msg.decode())
+
+
+
+try:
+    c_mqtt = MQTTClient(CONFIG['client_id'], CONFIG['broker'], CONFIG['port'], timeout=1, sbt=CONFIG['topic'],
+                        debug=False)
+
+    c_mqtt.set_callback(sub_cb)
+
+except (OSError, ValueError):
+    print("Couldn't connect to MQTT")
+
+
+def check():
+
+    if c_mqtt and c_mqtt.status == 0:
+        c_mqtt.con2()
+
+
+    global MESSAGES
+    MESSAGES['ping'] = '1'
 
 
 def make_publish():
 
 
     while True:
-        # print("INF: Start Publish")
 
         to_mqtt = get_messages()
 
+        # HARD DEBUG
         # if debug:
         #     print("Message to MQTT", to_mqtt)
 
@@ -164,75 +218,29 @@ def make_publish():
                 t_start = time.ticks_ms()
 
                 if value:
-
-                    while time.ticks_diff(t_start, time.ticks_ms()) <= -2000:  # 2000mS delay
-                        yield None
-
+                    #DEBUG
                     if debug:
                         print("Message Ready: Pub: %s, %s" % (key, value))
 
                     if c_mqtt and c_mqtt.status == 1:
-
                         retain = False
 
                         if key == 'sw2_state' or  key == 'sw1_state':
-
                             retain = True
 
                         result = c_mqtt.publish(CONFIG[key], bytes(value, 'utf-8'), retain)
+
+                        while time.ticks_diff(t_start, time.ticks_ms()) >= delay_between_message:  #check message send result
+                            yield None
+
                         if result == 1:
                             clear_messages(key)
+
+                        # DEBUG
                         if debug:
                             print("Result pub to MQTT", result)
-                        # if key == 'wait_msg':
-                        #     c_mqtt.wait_msg()
 
         yield True
-
-
-def sub_cb(topic, msg):
-
-    if topic.decode() == CONFIG['sw2_set']:
-
-        if msg.decode() == "ON":
-            set_relay_status(relay2, on)
-
-        if msg.decode() == "OFF":
-            set_relay_status(relay2, off)
-
-    if topic.decode() == CONFIG['sw1_set']:
-
-        if msg.decode() == "ON":
-            set_relay_status(relay1, 1)
-
-        if msg.decode() == "OFF":
-            set_relay_status(relay1, 0)
-
-    if debug:
-        print(topic, msg)
-
-
-def config_mqtt_client():
-    global c_mqtt
-
-    try:
-        c_mqtt = MQTTClient(CONFIG['client_id'], CONFIG['broker'], CONFIG['port'], timeout=1, sbt=CONFIG['topic'], debug=False)
-        c_mqtt.set_callback(sub_cb)
-    except (OSError, ValueError):
-        print("Couldn't connect to MQTT")
-
-    # Subscribed messages will be delivered to this callback
-
-
-
-def check():
-
-    if c_mqtt and c_mqtt.status == 0:
-        c_mqtt.con2()
-
-    global MESSAGES
-    MESSAGES['ping'] = '1'
-
 
 def wait_msg():
 
@@ -240,60 +248,38 @@ def wait_msg():
         c_mqtt.wait_msg()
 
 
+publish = make_publish()
 def pubm():
+    try:
+        next(publish)
+    except StopIteration:
 
-    next(publish)
+        if debug:
+            print("StopIteration")
 
+
+
+
+
+#BUTTON CHECK
+def push():
+
+    b0.push
+    b2.push
 
 def run_timer():
 
+    tim5.init(period=300, mode=Timer.PERIODIC, callback=lambda t: push())
 
     tim1.init(period=15000, mode=Timer.PERIODIC, callback=lambda t: check())
     tim2.init(period=2000, mode=Timer.PERIODIC, callback=lambda t: wait_msg())
     tim3.init(period=1000, mode=Timer.PERIODIC, callback=lambda t: pubm())
 
-
-def switch_relay(relay):
-    if get_relay_status(relay):
-        set_relay_status(relay, off)
-    else:
-        set_relay_status(relay, on)
-
-global last_interrupt_time
-last_interrupt_time = 0
-
-def button_callback(pin):
-
-    global last_interrupt_time
-    interrupt_time = time.ticks_ms()
-
-    sw1 = Pin(but1_pin)
-    sw2 = Pin(but2_pin)
-
-    if time.ticks_diff(last_interrupt_time, interrupt_time) <= -200:
-
-        if pin is sw1:
-            switch_relay(relay1)
-        elif pin is sw2:
-            switch_relay(relay2)
-
-    last_interrupt_time = interrupt_time
-
-
-
-
+    #uncomment if DS18B20 present, or freezed every 20sec.
+    tim4.init(period=20000, mode=Timer.PERIODIC, callback=lambda t: get_18b20())
 
 def main():
-
-    config_mqtt_client()
     run_timer()
 
-    button1.irq(trigger=machine.Pin.IRQ_FALLING, handler=button_callback)
-    button2.irq(trigger=machine.Pin.IRQ_FALLING, handler=button_callback)
-
-
-
 if __name__ == '__main__':
-    load_config()
-    setup()
     main()

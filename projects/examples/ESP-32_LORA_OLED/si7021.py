@@ -63,7 +63,7 @@ class SI7021:
         self.status = 1
 
         if self.debug:
-            print("Sensor present / Register Byte: %s" % reg)
+            print("Sensor present / Register Byte: %s, decimal: %s" % (reg[0], reg))
         return self.status
 
     def soft_reset(self):
@@ -145,8 +145,8 @@ class SI7021:
 
         if not self.crc8check(value):
             if self.debug:
-                print("crc8check: %s" % value)
-            return -255
+                print("crc8check T: %s, status: %s" % (value, self.status))
+            return -254
 
         raw_temp = (value[0] << 8) + value[1]
 
@@ -174,11 +174,13 @@ class SI7021:
             value = 0
 
         if not self.crc8check(value):
-            return -255
+            if self.debug:
+                print("crc8check H: %s, status: %s" % (value, self.status))
+            return -254
 
         rawRHData = (value[0] << 8) + value[1]
 
-        rawRHData = rawRHData & 0xFFFC;  # Clear the status bits
+        rawRHData = rawRHData & 0xFFFC  # Clear the status bits
 
         # Calculate the actual RH
         actualRH = -6 + (125.0 * rawRHData / 65536)

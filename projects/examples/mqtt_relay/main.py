@@ -35,7 +35,7 @@ client_id = b"esp8266_" + ubinascii.hexlify(machine.unique_id())
 # "broker": 'iot.eclipse.org'
 
 CONFIG = {
-    "broker": '192.168.2.138',
+    "broker": '192.168.2.153',
     "port" : 1883,
     "sensor_pin": 0,
     "client_id": client_id,
@@ -212,7 +212,8 @@ def config_mqtt_client():
     global c_mqtt
 
     try:
-        c_mqtt = MQTTClient(CONFIG['client_id'], CONFIG['broker'], CONFIG['port'], timeout=1, sbt=CONFIG['topic'], debug=False)
+        # c_mqtt = MQTTClient(CONFIG['client_id'], CONFIG['broker'], CONFIG['port'], timeout=1, sbt=CONFIG['topic'], debug=False)
+        c_mqtt = MQTTClient(CONFIG['client_id'], CONFIG['broker'], CONFIG['port'])
         c_mqtt.set_callback(sub_cb)
     except (OSError, ValueError):
         print("Couldn't connect to MQTT")
@@ -223,7 +224,7 @@ def config_mqtt_client():
 
 def check():
 
-    if c_mqtt and c_mqtt.status == 0:
+    if not c_mqtt:
 
         global r2_manual
         global r1_manual
@@ -233,7 +234,7 @@ def check():
         r1_manual = False
         r1_manual = False
 
-        c_mqtt.con2()
+        c_mqtt.connect()
 
     else:
 
@@ -254,8 +255,8 @@ def check():
 
 def wait_msg():
 
-    if c_mqtt and c_mqtt.status == 1:
-        c_mqtt.wait_msg()
+    if c_mqtt:
+        c_mqtt.check_msg()
 
 
 def pubm():

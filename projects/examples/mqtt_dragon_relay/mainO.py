@@ -2,9 +2,9 @@
 import machine
 from machine import Timer
 import time
-from simple import MQTTClient
+from mqtt_simple import MQTTClient
 import ubinascii
-from machine import Pin, PWM
+from machine import Pin
 
 tim1 = Timer(-1)
 tim2 = Timer(-1)
@@ -14,29 +14,17 @@ tim5 = Timer(-1)
 
 import time
 import machine
-import onewire, ds18x20
-
 
 global debug
 debug = False
 
-global tem1
-tem1 = False
-
-global r1_manual
-global r2_manual
-
-r1_manual = False
-r2_manual = False
-
 client_id = b"esp8266_" + ubinascii.hexlify(machine.unique_id())
 
 # "broker": '192.168.2.138',
-# "broker": '192.168.2.138',
-#'iot.eclipse.org'
+# "broker": 'iot.eclipse.org'
 
 CONFIG = {
-    "broker": '192.168.2.138',
+    "broker": '192.168.2.153',
     "port" : 1883,
     "sensor_pin": 0,
     "client_id": client_id,
@@ -46,19 +34,38 @@ CONFIG = {
     "sw1_state" : b"devices/"+client_id+"/sw1/state",
     "sw2_set": b"devices/" + client_id + "/sw2/set",
     "sw2_state": b"devices/" + client_id + "/sw2/state",
-    "DS18B20" : b"devices/" + client_id + "/18b20/temp",
+    "DS18B20" : b"devices/" + client_id + "/18b20",
+
 }
 
-RELAYS = [machine.Pin(i, machine.Pin.OUT, value=1) for i in (4, 5)]
+on = 1
+off = 0
+
+RELAYS = [machine.Pin(i, machine.Pin.OUT, value=off) for i in (12, 13)]
+relay1 = 1
+relay2 = 0
+
+but1_pin = 2
+but2_pin = 0
+button1 = machine.Pin(but1_pin, machine.Pin.IN, machine.Pin.PULL_UP)
+button2 = machine.Pin(but2_pin, machine.Pin.IN, machine.Pin.PULL_UP)
+
 
 def get_value_h(value):
 
-    if value == 1:
-        return "OFF"
     if value == 0:
+        return "OFF"
+    if value == 1:
         return "ON"
     return None
 
+def get_relay_h(value):
+
+    if value == 0:
+        return "Relay 2"
+    if value == 1:
+        return "Relay 1"
+    return None
 
 
 def get_relays():
@@ -68,22 +75,22 @@ def get_relay_status(relay):
     value = RELAYS[int(relay)].value()
     result = get_value_h(value)
 
-    return "Relay %s status: %s" % (relay, result)
-
+    print("%s status: %s" % (get_relay_h(relay), result))
+    return value
 
 def set_relay_status(relay, value):
     RELAYS[int(relay)].value(int(value))
     global MESSAGES
 
-    if relay == 1:
+    if relay == relay2:
 
         MESSAGES['sw2_state'] = get_value_h(value)
 
-    if relay == 0:
+    if relay == relay1:
 
         MESSAGES['sw1_state'] = get_value_h(value)
 
-    return "Relay %s set to %s" % (relay, value)
+    print("%s set to %s" % (get_relay_h(relay), get_value_h(value)))
 
 
 def load_config():
@@ -109,21 +116,10 @@ def save_config():
 
 def setup():
 
-
-    global pwm2
-    pwm2 = PWM(Pin(2), freq=2, duty=512)
-
     set_messages()
 
     global publish
     publish = make_publish()
-
-    # the device is on GPIO12
-    dat = machine.Pin(13)
-
-    #create the onewire object
-    global ds
-    ds = ds18x20.DS18X20(onewire.OneWire(dat))
 
     global roms
     roms = False
@@ -143,20 +139,19 @@ def set_messages():
 def clear_messages(key):
 
     global MESSAGES
+
     MESSAGES[key] = None
 
 
 
 def make_publish():
 
-
     while True:
-        # print("INF: Start Publish")
 
         to_mqtt = get_messages()
 
-        # if debug:
-        #     print("Message to MQTT", to_mqtt)
+        if debug:
+            print("Message to MQTT", to_mqtt)
 
         if to_mqtt:
 
@@ -165,8 +160,9 @@ def make_publish():
 
                 if value:
 
-                    while time.ticks_diff(t_start, time.ticks_ms()) <= -1000:  # 2000mS delay
+                    while time.ticks_diff(t_start, time.ticks_ms()) <= -2000:  # 2000mS delay
                         yield None
+
                     if debug:
                         print("Message Ready: Pub: %s, %s" % (key, value))
 
@@ -183,70 +179,30 @@ def make_publish():
                             clear_messages(key)
                         if debug:
                             print("Result pub to MQTT", result)
-                        # if key == 'wait_msg':
-                        #     c_mqtt.wait_msg()
-
-
-
-
-        # while time.ticks_diff(t_start, time.ticks_ms()) <= 10000:  # 15000mS delay
-        #     yield None
-
-
 
         yield True
 
 
 def sub_cb(topic, msg):
-    global r1_manual
-    global r2_manual
 
     if topic.decode() == CONFIG['sw2_set']:
 
         if msg.decode() == "ON":
-            r2_manual = True
-            #set_relay_status(1, 0)
+            set_relay_status(relay2, on)
 
         if msg.decode() == "OFF":
-            r2_manual = False
-            #set_relay_status(1, 1)
+            set_relay_status(relay2, off)
 
     if topic.decode() == CONFIG['sw1_set']:
 
         if msg.decode() == "ON":
-            r1_manual = True
-            #set_relay_status(0, 0)
+            set_relay_status(relay1, 1)
 
         if msg.decode() == "OFF":
-            r1_manual = False
-            #set_relay_status(0, 1)
+            set_relay_status(relay1, 0)
 
     if debug:
         print(topic, msg)
-
-
-    # if (topic == "garage12/red/esp121/sw2/set")
-    #     {
-    #
-    #     if (message == "ON")
-    #     {
-    #         Serial.println("sw2: ON");
-    #
-    #     digitalWrite(SW2_PIN, LOW);
-    #     }
-    #     else
-    #     {
-    #         Serial.println("sw2: OFF");
-    #
-    #     digitalWrite(SW2_PIN, HIGH);
-    #     }
-    #     mqtt.publish("garage12/red/esp121/sw2/state", message);
-    #
-    #     }
-
-
-
-
 
 
 def config_mqtt_client():
@@ -258,74 +214,16 @@ def config_mqtt_client():
     except (OSError, ValueError):
         print("Couldn't connect to MQTT")
 
-    # Subscribed messages will be delivered to this callback
-
 
 
 
 def check():
 
     if c_mqtt and c_mqtt.status == 0:
-
-        global r2_manual
-        global r1_manual
-
-        set_relay_status(1, 1)
-        set_relay_status(0, 1)
-        r1_manual = False
-        r1_manual = False
-
         c_mqtt.con2()
-
-    else:
-        if tem1 and r2_manual:
-            if tem1 > 20.5:
-                set_relay_status(1, 1)
-
-            if tem1 < 18:
-                set_relay_status(1, 0)
-        else:
-            set_relay_status(1, 1)
-
-        if tem1 and r1_manual:
-            if tem1 > 22:
-                set_relay_status(0, 1)
-
-            if tem1 < 19:
-                set_relay_status(0, 0)
-        else:
-            set_relay_status(0, 1)
-
-
-
-
-
-
-
 
     global MESSAGES
     MESSAGES['ping'] = '1'
-
-
-def temp_18b20():
-
-    # scan for devices on the bus
-    global roms
-    global tem1
-    MESSAGES['DS18B20'] = None
-    tem1 = False
-    roms = ds.scan()
-    if roms:
-        ds.convert_temp()
-        temp = ds.read_temp(roms[0])
-
-        if temp:
-            MESSAGES['DS18B20'] = str(temp)
-            tem1 = float(temp)
-        else:
-            tem1 = False
-            MESSAGES['DS18B20'] = None
-
 
 
 def wait_msg():
@@ -346,18 +244,45 @@ def run_timer():
     tim2.init(period=2000, mode=Timer.PERIODIC, callback=lambda t: wait_msg())
     tim3.init(period=1000, mode=Timer.PERIODIC, callback=lambda t: pubm())
 
-    #uncomment if DS18B20 present, or freezed every 20sec.
-    tim4.init(period=20000, mode=Timer.PERIODIC, callback=lambda t: temp_18b20())
+
+def switch_relay(relay):
+    if get_relay_status(relay):
+        set_relay_status(relay, off)
+    else:
+        set_relay_status(relay, on)
+
+global last_interrupt_time
+last_interrupt_time = 0
+
+def button_callback(pin):
+
+    global last_interrupt_time
+    interrupt_time = time.ticks_ms()
+
+    sw1 = Pin(but1_pin)
+    sw2 = Pin(but2_pin)
+
+    if time.ticks_diff(last_interrupt_time, interrupt_time) <= -600:
+
+        if pin is sw1:
+            switch_relay(relay1)
+        elif pin is sw2:
+            switch_relay(relay2)
+
+    last_interrupt_time = interrupt_time
 
 
-    # tim5.init(period=60000, mode=Timer.PERIODIC, callback=lambda t: get_relay_status(1))
-    # tim1.init(period=10000, mode=Timer.ONE_SHOT, callback=lambda t: connect_mqtt_client())
+
 
 
 def main():
 
     config_mqtt_client()
     run_timer()
+
+    button1.irq(trigger=machine.Pin.IRQ_FALLING, handler=button_callback)
+    button2.irq(trigger=machine.Pin.IRQ_FALLING, handler=button_callback)
+
 
 
 if __name__ == '__main__':

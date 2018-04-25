@@ -11,7 +11,8 @@ from mqtt_simple import MQTTClient
 
 client_id = b"esp8266_D_" + ubinascii.hexlify(machine.unique_id())
 
-
+#mode: auto , OFF, ON
+#temp control R1: max
 #CONFIG
 CONFIG = {
     "broker": '192.168.2.153',
@@ -19,6 +20,9 @@ CONFIG = {
     "sensor_pin": 14,
     "delay_between_message" : -500,
     "client_id": client_id,
+    "r1_mode": "OFF",
+    "r1_max": client_id,
+    "r1_min": client_id,
     "topic": b"devices/"+client_id+"/#",
     "ping" : b"devices/"+client_id+"/ping",
     "sw1_set" : b"devices/"+client_id+"/sw1/set",
@@ -26,6 +30,9 @@ CONFIG = {
     "sw2_set": b"devices/" + client_id + "/sw2/set",
     "sw2_state": b"devices/" + client_id + "/sw2/state",
     "DS18B20": b"devices/" + client_id + "/18b20",
+    "t_ctr_r1_mode": b"devices/" + client_id + "/t_ctr_r1/mode",
+    "t_ctr_r1_max": b"devices/" + client_id + "/t_ctr_r1/max",
+    "t_ctr_r1_min": b"devices/" + client_id + "/t_ctr_r1/min",
 }
 
 def load_config():
@@ -47,6 +54,10 @@ def save_config():
             f.write(json.dumps(CONFIG))
     except OSError:
         print("Couldn't save /config.json")
+
+def put_config(name,value):
+    CONFIG[name] = value
+    save_config()
 
 
 def get_value_human(value):
@@ -161,7 +172,7 @@ delay_between_message = -200 #500 ms
 
 def sub_cb(topic, msg):
 
-    if topic.decode() == CONFIG['sw2_set']:
+    if topic == CONFIG['sw2_set']:
 
         if msg.decode() == "ON":
             relay_2.set_state(relay_on)
@@ -169,7 +180,7 @@ def sub_cb(topic, msg):
         if msg.decode() == "OFF":
             relay_2.set_state(relay_off)
 
-    if topic.decode() == CONFIG['sw1_set']:
+    if topic == CONFIG['sw1_set']:
 
         if msg.decode() == "ON":
             relay_1.set_state(relay_on)
