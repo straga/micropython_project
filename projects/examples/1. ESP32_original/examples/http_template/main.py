@@ -13,23 +13,6 @@ def main():
 
     print("Main = %s" % _message)
 
-    # r1 = False
-    #
-    # import utime
-    # import network
-    # import ftp
-    # import _thread
-    #
-    # sta = network.WLAN(network.STA_IF)
-    # sta.active(True)
-    # sta.connect("GS101", "bunkerwifi")
-    # utime.sleep_ms(5000)
-    # print(sta.ifconfig())
-    #
-    # _ = _thread.stack_size(3 * 1024)
-    # ftp = _thread.start_new_thread(ftp.ftpserver, ())
-
-
     r1 = Runner(debug=_debug)
 
     print("Wait: Press Control Button")
@@ -51,6 +34,9 @@ def main():
         utime.sleep_ms(5000)
         print(sta.ifconfig())
         ftp = _thread.start_new_thread(ftp.ftpserver, ())
+
+        import telnet
+        telnet = _thread.start_new_thread(telnet.start, ())
 
 
     return r1
