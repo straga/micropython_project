@@ -26,7 +26,7 @@ class FTPClient:
 
     def run(self, addr=None):
 
-        if not addr or addr is "0.0.0.0":
+        if not addr or addr == "0.0.0.0":
             log.info("No active connection")
             return False
 
@@ -232,8 +232,8 @@ class FTPClient:
 
     async def server(self, reader, writer):
         addr = writer.get_extra_info('peername')
-    	log.info("client from {}".format(addr))
-    	await writer.awrite("220 Welcome to micro FTP SE server\r\n")
+        log.info("client from {}".format(addr))
+        await writer.awrite("220 Welcome to micro FTP SE server\r\n")
 
         while True:
 

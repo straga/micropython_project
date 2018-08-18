@@ -62,18 +62,18 @@ class WifiManager:
             ip = self.wlan().ifconfig()
             await asyncio.sleep(10)
 
-            if ip[0] is "0.0.0.0":
+            if ip[0] == "0.0.0.0":
                 for ssid, pwd in config_sta.items():
                     self.wlan().connect(ssid, pwd)
                     await asyncio.sleep(2)
 
                     ip = self.wlan().ifconfig()
 
-                    if ip[0] is not "0.0.0.0":
+                    if ip[0] != "0.0.0.0":
                         break
 
 
-            if ip[0] is not "0.0.0.0":
+            if ip[0] != "0.0.0.0":
                 self.status = True
                 self.accesspoint().active(False)
                 self.status_ap = False
