@@ -65,7 +65,7 @@ class WifiManager:
             if ip[0] == "0.0.0.0":
                 for ssid, pwd in config_sta.items():
                     self.wlan().connect(ssid, pwd)
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(15)
 
                     ip = self.wlan().ifconfig()
 
