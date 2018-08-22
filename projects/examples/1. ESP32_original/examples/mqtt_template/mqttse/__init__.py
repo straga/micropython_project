@@ -19,7 +19,7 @@ BUSY_ERRORS = (EINPROGRESS, ETIMEDOUT)
 
 class MQTTClient:
 
-    def __init__(self, client_id, server, port=1883, user=None, password=None, keepalive=0, response_time=1, sbt=None, debug=False):
+    def __init__(self, client_id, server=None, port=1883, user=None, password=None, keepalive=0, response_time=1, sbt=None, debug=False):
 
         self.client_id = client_id
         self.server = server
@@ -415,17 +415,18 @@ class MQTTClient:
         loop = asyncio.get_event_loop()
         loop.create_task(self.client())
 
-
-        self.topics['topic'] = "devices/{}/#".format(self.client_id)
+        self.set_topic("topic", "#")
         self.sbt = self.topics['topic']
 
-
-        self.topics['ping'] = "devices/{}/ping".format(self.client_id)
+        self.set_topic("ping", "ping")
 
         loop.create_task(self._keep_alive())
 
         log.info("Client Running")
         return True
+
+    def set_topic(self, key, value):
+        self.topics[key] = "devices/{}/{}".format(self.client_id, value)
 
 
 

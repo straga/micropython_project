@@ -15,6 +15,8 @@ from wifi import WifiManager
 from ftpse import FTPClient
 from telnetse import TelnetServer
 
+import json
+
 _debug = True
 client_id = b"esp32_" + ubinascii.hexlify(machine.unique_id())
 client_id = client_id.decode()
@@ -74,16 +76,25 @@ class Runner():
 
         #MQTT
         from mqttse import MQTTClient
-        #iot.eclipse.org
-        #192.168.254.1
-        self.mqtt = MQTTClient(client_id, "iot.eclipse.org", 1883)
+
+        self.mqtt = MQTTClient(client_id)
+
+        # "local1": "192.168.100.240",
+        # "local2": "192.168.254.1",
+        # "eclipse": "iot.eclipse.org"
+
+        self.mqtt.server = "192.168.100.240"
+
         self.mqtt.set_callback(self.mqtt_sub_cb)
 
-        self.mqtt.topics['sw1_set'] = "devices/{}/sw1/set".format(client_id)
-        self.mqtt.topics['sw1_state'] = "devices/{}/sw1/state".format(client_id)
+        self.mqtt.set_topic("status", "status")
+        self.mqtt.set_topic("services", "services")
 
-        self.mqtt.topics['sw2_set'] = "devices/{}/sw2/set".format(client_id)
-        self.mqtt.topics['sw2_state'] = "devices/{}/sw2/state".format(client_id)
+        self.mqtt.set_topic("sw1_set", "sw1/set")
+        self.mqtt.set_topic("sw1_state", "sw1/state")
+
+        self.mqtt.set_topic("sw2_set", "sw2/set")
+        self.mqtt.set_topic("sw2_state", "sw2/state")
 
 
     #MQTT
@@ -192,14 +203,25 @@ class Runner():
             mem_free = gc.mem_free()
             mem_alloc = gc.mem_alloc()
 
-            print("STA status: %s" % self.wifi.status)
-            print("AP status: %s" % self.wifi.status_ap)
+            print("STA status: {}".format(self.wifi.status))
+            print("AP status: {}".format(self.wifi.status_ap))
 
-            print("Uptime: %s" % mins)
-            print("MemFree: %s" % mem_free)
-            print("MemAlloc: %s" % mem_alloc)
+            self.status = {
+                "Uptime": "{}".format(mins),
+                "MemFree": "{}".format(mem_free),
+                "MemAlloc": "{}".format(mem_alloc)
+            }
 
+            print("Status: {}".format(self.status))
             print("Services: {}".format(self.service))
+            # print("Uptime: {}".format(mins))
+            # print("MemFree: {}".format(mem_free))
+            # print("MemAlloc: {}".format(mem_alloc))
+            # print("Services: {}".format(self.service))
+
+            if self.mqtt:
+                self.mqtt.mqtt_bus["status"] = ("{}".format(self.status))
+                self.mqtt.mqtt_bus["services"] = ("{}".format(self.service))
 
             mins += 1
 
@@ -229,6 +251,7 @@ class Runner():
                         self.service["ftp_STA"] = self.ftpd.run(self.service["wifi_STA"])
 
                 if not self.service["mqtt"] and self.mqtt:
+
                     self.service["mqtt"] = self.mqtt.run()
 
                 if not self.service["telnet"]:
@@ -239,9 +262,6 @@ class Runner():
 
                 if not self.service["ftp_AP"]:
                         self.service["ftp_AP"] = self.ftpd.run(self.service["wifi_AP"])
-
-                if not self.service["telnet"]:
-                    self.service["telnet"] = self.telnet.start()
 
 
 
