@@ -77,4 +77,6 @@ class TelnetServer:
             log.info("Telnet server started on {}:{}".format(addr, port))
             self.run = "{};{}".format(addr, port)
 
+        return True
+
 
