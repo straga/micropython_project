@@ -22,8 +22,6 @@ class TelnetIO(uio.IOBase):
 
 
     def readinto(self, b):
-        # print("Socket Readinto")
-        # return None
         readbytes = 0
         for i in range(len(b)):
             try:
@@ -84,8 +82,8 @@ class TelnetIO(uio.IOBase):
 
     def write(self, data):
         if self.accept:
-            close = False
-            while len(data) > 0 or close:
+            while len(data) > 0:
+
                 try:
                     written_bytes = self.socket.write(data)
                     data = data[written_bytes:]
@@ -93,8 +91,8 @@ class TelnetIO(uio.IOBase):
                     if len(e.args) > 0 and e.args[0] == errno.EAGAIN:
                         pass
                     else:
-                        close = True
-
+                        self.close()
+                        break
 
     def close(self):
         self.socket.close()

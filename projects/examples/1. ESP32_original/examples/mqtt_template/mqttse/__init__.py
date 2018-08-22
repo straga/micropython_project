@@ -154,10 +154,10 @@ class MQTTClient:
                     return None
             await asyncio.sleep_ms(500)
 
-            try:
+            if len(addr) > 0:
                 addr = addr[0][-1]
-            except OSError as e:
-                log.debug("ERROR connect: {}".format(e))
+            else:
+                log.debug("Addr: {}".format(addr))
                 return None
 
             log.debug("MQTT server: {}".format(addr))

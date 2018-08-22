@@ -95,7 +95,7 @@ class FTPClient:
 
         try:
             with open(argument, "wb") as f:
-                log.debug("W0")
+                log.debug("WB")
                 # f.seek(0)
                 while True:
                     try:

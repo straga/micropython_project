@@ -10,12 +10,12 @@ log = logging.getLogger("telnet")
 
 class TelnetServer:
 
-    def __init__(self, port=23):
+    def __init__(self, pswd="micro"):
 
-        self.port = port
-        self.addr = False
+        self.pswd = pswd
+
         self.sw_client = None
-
+        self.run = False
 
 
     # On accepting client connection
@@ -28,13 +28,16 @@ class TelnetServer:
             log.info("Close previous connection ...")
             self.stop()
 
-
-        self.sw_client = TelnetIO(writer.s)
+        log.info("Get client connection ...")
+        self.sw_client = TelnetIO(writer.s, self.pswd )
 
         self.sw_client.socket.setblocking(False)
         self.sw_client.socket.sendall(bytes([255, 252, 34]))  # dont allow line mode
         self.sw_client.socket.sendall(bytes([255, 251, 1]))  # turn off local echo
         uos.dupterm(self.sw_client)
+
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.client_rx())
 
 
     # On receiving client data
@@ -43,14 +46,9 @@ class TelnetServer:
         while True:
             if self.sw_client != None:
                 try:
-                    # # dirty hack to check if socket is still connected
-                    # s = str(self.sw_client.socket)
-                    # i = s.index('state=') + 6
-                    # if int(s[i:s.index(' ', i)]) != 2:
-                    #     raise
-
                     yield asyncio.IORead(self.sw_client.socket)
-                    uos.dupterm_notify(self.sw_client.socket)  # dupterm_notify will somehow make a copy of sw_client
+                    uos.dupterm_notify(True)  # dupterm_notify will somehow make a copy of sw_client
+
                 except:
                     # clean up
                     log.info("Telnet client disconnected ...")
@@ -58,8 +56,6 @@ class TelnetServer:
                     self.stop()
             else:
                 await asyncio.sleep(1)
-            await asyncio.sleep_ms(1)
-
 
 
     def stop(self):
@@ -71,17 +67,14 @@ class TelnetServer:
             self.sw_client = None
 
 
-
     # Add server tasks to asyncio event loop
     # Server will run after loop has been started
-    def start(self, ip="0.0.0.0", port=23):
+    def start(self, addr="0.0.0.0", port=23):
 
         loop = asyncio.get_event_loop()
-        loop.create_task(asyncio.start_server(self.server, ip, port))
-        loop.create_task(self.client_rx())
-
-        log.info("Telnet server started on {}:{}".format(ip, port))
-
-        return True
+        if not self.run:
+            loop.create_task(asyncio.start_server(self.server, addr, port))
+            log.info("Telnet server started on {}:{}".format(addr, port))
+            self.run = "{};{}".format(addr, port)
 
 
