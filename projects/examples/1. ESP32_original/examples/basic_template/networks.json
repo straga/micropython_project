@@ -1,0 +1,16 @@
+{
+	"known_networks": {
+    "InetAP_1": "12345678",
+		"InetAP_2": "12345678",
+		"InetAP_3": "12345678",
+		"InetAP_4": "12345678",
+		"InetAP_5": "12345678",
+	},
+	"access_point": {
+		"essid": "uPy-Dev(micro)",
+		"channel": 11,
+		"hidden": false,
+		"password": "12345678",
+		"authmode":3
+	}
+}
