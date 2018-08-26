@@ -83,7 +83,7 @@ class HTTPSE:
 
                         log.debug("--> _queryParams : {}".format(_queryParams))
 
-            log.info("== handler")
+            log.info("= handler: {}".format(elements))
             await self.handler(_method, _resPath, _queryParams, writer.awrite )
 
 

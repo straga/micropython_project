@@ -121,7 +121,7 @@ class FTPClient:
     async def data_server(self, reader, writer):
 
         addr = writer.get_extra_info('peername')
-        log.info("Data Server <- client from {}".format(addr))
+        log.info("+ Data Server <- client from {}".format(addr))
         log.debug("Data Start {}".format(self.start))
 
         if not self.transfer:
@@ -157,6 +157,7 @@ class FTPClient:
 
             # await asyncio.sleep_ms(300)
             if not self.transfer:
+                log.info("- Data Server <- client from {}".format(addr))
                 log.debug("s2. Data Server = Close")
                 await writer.aclose()
                 self.start = False

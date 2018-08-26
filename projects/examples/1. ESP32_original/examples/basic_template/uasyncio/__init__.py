@@ -1,3 +1,4 @@
+# (c) 2014-2018 Paul Sokolovsky. MIT license.
 import uerrno
 import uselect as select
 import usocket as _socket
@@ -229,29 +230,98 @@ def open_connection(host, port, ssl=False):
     return StreamReader(s), StreamWriter(s, {})
 
 
+global socket_errors
+socket_errors = 0
+
+def error_control(client_coro, host, port, backlog,e):
+    loop = get_event_loop()
+    global socket_errors
+
+    print("{}:{} - Socket Error: {}".format(host, port, e))
+
+    if socket_errors > 10:
+        from machine import reset
+        reset()
+
+    loop.create_task(start_server(client_coro, host, port, backlog))
+
+
 def start_server(client_coro, host, port, backlog=10):
-    if DEBUG and __debug__:
-        log.debug("start_server(%s, %s)", host, port)
+    # if DEBUG and __debug__:
+    #     log.debug("start_server(%s, %s)", host, port)
+    global socket_errors
+
+    # print("Sokcer Error({})".format(socket_errors))
+    # print("start_server({}:{})".format(host, port))
     ai = _socket.getaddrinfo(host, port, 0, _socket.SOCK_STREAM)
     ai = ai[0]
-    s = _socket.socket(ai[0], ai[1], ai[2])
-    s.setblocking(False)
 
+    try:
+        s = _socket.socket(ai[0], ai[1], ai[2])
+    except OSError as e:
+        socket_errors += 1
+        error_control(client_coro, host, port, backlog,e)
+        return None
+
+    s.setblocking(False)
     s.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
     s.bind(ai[-1])
     s.listen(backlog)
+
     while True:
-        if DEBUG and __debug__:
-            log.debug("start_server: Before accept")
+        # if DEBUG and __debug__:
+        #     log.debug("start_server: Before accept")
+
+        # print("{}:{} - Wait accept".format(host, port))
         yield IORead(s)
-        if DEBUG and __debug__:
-            log.debug("start_server: After iowait")
-        s2, client_addr = s.accept()
-        s2.setblocking(False)
-        if DEBUG and __debug__:
-            log.debug("start_server: After accept: %s", s2)
+        # print("{}:{} - After accept".format(host, port))
+        # if DEBUG and __debug__:
+        #     log.debug("start_server: After iowait")
+
+        try:
+            s_client, client_addr = s.accept()
+        except OSError as e:
+            yield IOWriteDone(s)
+            s.close()
+            socket_errors += 1
+            error_control(client_coro, host, port, backlog, e)
+            break
+
+        socket_errors = 0
+
+        s_client.setblocking(False)
+        # print("{}:{} -  After accept: {}".format(host, port, client_addr))
+        # if DEBUG and __debug__:
+        #     log.debug("start_server: After accept: %s", s2)
         extra = {"peername": client_addr}
-        yield client_coro(StreamReader(s2), StreamWriter(s2, extra))
+        yield client_coro(StreamReader(s_client), StreamWriter(s_client, extra))
+
+
+
+# def start_server(client_coro, host, port, backlog=10):
+#     if DEBUG and __debug__:
+#         log.debug("start_server(%s, %s)", host, port)
+#     ai = _socket.getaddrinfo(host, port, 0, _socket.SOCK_STREAM)
+#     ai = ai[0]
+#     s = _socket.socket(ai[0], ai[1], ai[2])
+#     s.setblocking(False)
+#
+#     s.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+#     s.bind(ai[-1])
+#     s.listen(backlog)
+#     while True:
+#         if DEBUG and __debug__:
+#             log.debug("start_server: Before accept")
+#         yield IORead(s)
+#         if DEBUG and __debug__:
+#             log.debug("start_server: After iowait")
+#         s2, client_addr = s.accept()
+#         s2.setblocking(False)
+#         if DEBUG and __debug__:
+#             log.debug("start_server: After accept: %s", s2)
+#         extra = {"peername": client_addr}
+#         yield client_coro(StreamReader(s2), StreamWriter(s2, extra))
+
 
 
 import uasyncio.core

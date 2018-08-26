@@ -55,6 +55,8 @@ class TelnetServer:
                     log.info("Telnet client disconnected ...")
                     yield asyncio.IOReadDone(self.sw_client.socket)
                     self.stop()
+
+                await asyncio.sleep_ms(1)
             else:
                 await asyncio.sleep(1)
 
