@@ -73,7 +73,10 @@ class WifiManager:
                     self.wlan().connect(ssid, pwd)
 
                     await asyncio.sleep(15)
+
                     ip = self.wlan().ifconfig()
+                    if ip[0] != "0.0.0.0":
+                        break
 
 
             if ip[0] != "0.0.0.0":
